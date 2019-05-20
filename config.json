@@ -1,0 +1,14 @@
+{
+  "credential": {
+    "robinhood": {
+      "username": "u",
+      "password": "p"
+    },
+    "aws": {
+      "aws_access_key_id": "a",
+      "aws_secret_access_key": "b",
+      "region": "us-east-1"
+    }
+  },
+  "fetch_interval": 5
+}
