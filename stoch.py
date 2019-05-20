@@ -10,15 +10,15 @@ stocks = {
     # 'ZM': {
     #     'price': 79.46,
     #     'type': 'sell',
-    #     'shares': 7
+    #     'shares': 0
     # },
     'PINS': {
         'price': 26.48,
         'type': 'buy',
-        'shares': 0
+        'shares': 15
     },
     # 'BYND': None,
-    'LK': None
+    # 'LK': None
     }
 
 
@@ -51,7 +51,7 @@ def calculate_details(stock_quotes):
         bid_trade_diff = round(last_trade_price - bid_price, 3)
         bid_trade_diff_rate = round(((last_trade_price - bid_price) / last_trade_price) * 100, 2)
         bid_trade_diff_output = util.get_diff_output(bid_trade_diff)
-        bid_trade_diff_rate_output = util.get_diff_output(bid_trade_diff_rate, postfix='%')
+        bid_trade_diff_rate_output = util.get_diff_output(bid_trade_diff_rate, format='{:>5}', postfix='%')
 
         transaction = stocks.get(symbol, None)
         display = None
@@ -64,29 +64,32 @@ def calculate_details(stock_quotes):
             total_price_diff = round(trans_price_per_share_diff * shares, 2) if trans_type == 'buy' else 0
             trans_price_diff_rate = round((trans_price_per_share_diff / trans_price) * 100, 2)
 
-            trans_price_per_share_diff_output = util.get_diff_output(trans_price_per_share_diff)
-            total_price_diff_output = util.get_diff_output(total_price_diff)
-            trans_price_diff_rate_output = util.get_diff_output(trans_price_diff_rate)
+            trans_price_per_share_diff_output = util.get_diff_output(trans_price_per_share_diff, format='{:>6}', postfix='$')
+            total_price_diff_output = util.get_diff_output(total_price_diff, format='{:>6}', postfix='$')
+            trans_price_diff_rate_output = util.get_diff_output(trans_price_diff_rate, format='{:>5}', postfix='%')
 
-            display = f'[SELL] [{trans_price_per_share_diff_output:{5}}$] [{trans_price_diff_rate_output:{5}}%] '
-            display += f'[{total_price_diff_output:{6}}$] ' if trans_type == 'buy' else f'[{"":{7}}] '
+            # display = f'[SELL] [{trans_price_per_share_diff_output:{5}}$] [{trans_price_diff_rate_output:{5}}%] '
+            # display += f'[{total_price_diff_output:{6}}$] ' if trans_type == 'buy' else f'[{"":{7}}] '
+
+            display = '[SELL] [' + trans_price_per_share_diff_output + '] [' + trans_price_diff_rate_output + '] '
+            display += '[' + total_price_diff_output + ']' if trans_type == 'buy' else ''
 
             checkpoint_prices = transaction.get('checkpoint_prices')
             for i in range(0, len(checkpoint_rates)):
                 if last_trade_price < checkpoint_prices[i]:
                     position = checkpoint_prices[i - 2:i] + ['*'] + checkpoint_prices[i:i + 2]
 
-                    lower_bound = util.get_diff_output(i - 22, postfix='%')
-                    higher_bound = util.get_diff_output(i - 19, postfix='%')
-                    display += f'{lower_bound:{3}} >[ {" > ".join([util.a(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
+                    lower_bound = util.get_diff_output(i - 22, format='{:>2}', postfix='%')
+                    higher_bound = util.get_diff_output(i - 19, format='{:2}', postfix='%')
+                    display += f' {lower_bound:{3}} >[ {" > ".join([util.a(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
                     break
 
-        print(f'{symbol:{6}} {updated_at:{9}} '
+        print(f'{symbol:{5}} {updated_at:{8}} '
               f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) '
               f'{bid_price:{9}} ({bid_price_slope_output_5min:{1}}{bid_price_slope_output_10min:{1}}) '
               f'{last_trade_price:{9}} ({last_trade_price_slope_output_5min:{1}}{last_trade_price_slope_output_10min:{1}}) '
-              f'{bid_trade_diff_output:{7}} {"[" + bid_trade_diff_rate_output + "]":{7}} '
-              f'--> {display if display else ""}'
+              + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
+              f' --> {display if display else ""}'
               )
 
 

@@ -213,8 +213,12 @@ def get_slop_output(slop_value):
     return ((Color.GREEN + "/" if slop_value > 0 else Color.BLUE + "-") if slop_value >= 0 else Color.RED + "\\") + Color.END
 
 
-def get_diff_output(diff_value, prefix='', postfix=''):
-    return (Color.RED if diff_value < 0 else Color.GREEN) + prefix + str(diff_value) + postfix + Color.END
+def get_diff_output(value, format='{:>7}', prefix='', postfix=''):
+    return (Color.RED if value < 0 else Color.GREEN) + \
+           prefix + \
+           format.format(value) + \
+           postfix + \
+           Color.END
 
 
 def a(value, trade_value):
