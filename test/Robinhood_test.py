@@ -1,7 +1,7 @@
 from robinhood.Robinhood import Robinhood, Transaction
 import time
 import datetime
-
+from utils.Config import Config
 
 def place_buy_order(rb,
                     instrument,
@@ -270,8 +270,13 @@ def place_stop_limit_sell_order(rb,
                              quantity=quantity))
 
 
+for i in range(1, 151):
+    print('\033[' + str(i) + 'm' + str(i) + ': ABCDEFG' + '\033[0m')
+
+config = Config(configure_file='../config.json')
+
 rb = Robinhood()
-if not rb.login(username="s0148897@gmail.com", password="April@1312"):
+if not rb.login(username=config.get_config('robinhood.username'), password=config.get_config('robinhood.password')):
     print('Login failed.')
     exit()
 

@@ -4,8 +4,8 @@ import json
 class Config(object):
     config = {}
 
-    def __init__(self):
-        with open('config.json', 'r') as fp:
+    def __init__(self, configure_file='config.json'):
+        with open(configure_file, 'r') as fp:
             data = json.load(fp)
             self.config['robinhood.username'] = data['credential']['robinhood']['username']
             self.config['robinhood.password'] = data['credential']['robinhood']['password']

@@ -7,22 +7,22 @@ import calculator.Statistics as statistics
 # TODO load from data store
 stocks = {
     # 'NDAQ': None,
-    # 'ZM': {
-    #     'price': 79.46,
-    #     'type': 'sell',
-    #     'shares': 0
-    # },
-    'PINS': {
-        'price': 26.48,
+    'ZM': {
+        'price': 85.08,
         'type': 'buy',
-        'shares': 15
+        'shares': 7
     },
+    # 'PINS': {
+    #     'price': 26.48,
+    #     'type': 'buy',
+    #     'shares': 15
+    # },
     # 'BYND': None,
     # 'LK': None
     }
 
 
-def calculate_details(stock_quotes):
+def calculate_details(stock_quotes, fundamentals):
     for stock_quote in stock_quotes:
         updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
         symbol = stock_quote.get('symbol')
@@ -31,8 +31,13 @@ def calculate_details(stock_quotes):
         bid_price = round(float(stock_quote.get('bid_price')), 3)
         bid_size = int(stock_quote.get('bid_size'))
         last_trade_price = round(float(stock_quote.get('last_trade_price')), 3)
+        # previous_close = round(float(stock_quote.get('previous_close')), 3)
+        today_open = round(float(fundamentals.get(symbol).get('open')), 3)
 
         # calculated data
+        today_open_diff = round(((last_trade_price - today_open)/last_trade_price) * 100, 3)
+        today_open_diff_output = util.get_diff_output(today_open_diff, format='{:>6}', postfix='%')
+
         period_samples.get(symbol).get('ask_price').push(ask_price)
         period_samples.get(symbol).get('bid_price').push(bid_price)
         period_samples.get(symbol).get('last_trade_price').push(last_trade_price)
@@ -68,9 +73,6 @@ def calculate_details(stock_quotes):
             total_price_diff_output = util.get_diff_output(total_price_diff, format='{:>6}', postfix='$')
             trans_price_diff_rate_output = util.get_diff_output(trans_price_diff_rate, format='{:>5}', postfix='%')
 
-            # display = f'[SELL] [{trans_price_per_share_diff_output:{5}}$] [{trans_price_diff_rate_output:{5}}%] '
-            # display += f'[{total_price_diff_output:{6}}$] ' if trans_type == 'buy' else f'[{"":{7}}] '
-
             display = '[SELL] [' + trans_price_per_share_diff_output + '] [' + trans_price_diff_rate_output + '] '
             display += '[' + total_price_diff_output + ']' if trans_type == 'buy' else ''
 
@@ -81,13 +83,14 @@ def calculate_details(stock_quotes):
 
                     lower_bound = util.get_diff_output(i - 22, format='{:>2}', postfix='%')
                     higher_bound = util.get_diff_output(i - 19, format='{:2}', postfix='%')
-                    display += f' {lower_bound:{3}} >[ {" > ".join([util.a(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
+                    display += f' {lower_bound:{3}} >[ {" > ".join([util.get_level_output(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
                     break
 
         print(f'{symbol:{5}} {updated_at:{8}} '
-              f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) '
-              f'{bid_price:{9}} ({bid_price_slope_output_5min:{1}}{bid_price_slope_output_10min:{1}}) '
+              f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) {ask_size:{4}} '
+              f'{bid_price:{9}} ({bid_price_slope_output_5min:{1}}{bid_price_slope_output_10min:{1}}) {bid_size:{4}} '
               f'{last_trade_price:{9}} ({last_trade_price_slope_output_5min:{1}}{last_trade_price_slope_output_10min:{1}}) '
+              + '[' + today_open_diff_output + '] '
               + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
               f' --> {display if display else ""}'
               )
@@ -95,8 +98,11 @@ def calculate_details(stock_quotes):
 
 def process_data():
     stock_quotes = rbh.quotes_data([symbol for symbol in stocks])
+    fundamentals = {}
+    for symbol in stocks:
+        fundamentals[symbol] = rbh.get_fundamentals(symbol)
 
-    calculate_details(stock_quotes)
+    calculate_details(stock_quotes, fundamentals)
     # store_data(stock_quotes)
 
 

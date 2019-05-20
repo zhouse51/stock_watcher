@@ -197,15 +197,42 @@ class FifoQueue:
 
 
 class Color:
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    BG_NORMAL = '\033[7m'
+    DARKCYAN = '\033[36m'
+    BRIGHT_WHITE = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    PURPLE = '\033[35m'
+    CYAN = '\033[36m'
+    GREY = '\033[37m'
+    BG_WHITE = '\033[40m'
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_PURPLE = '\033[45m'
+    BG_CYAN = '\033[46m'
+    BG_GREY = '\033[47m'
+    LIGHT_BLACK = '\033[90m'
+    LIGHT_RED = '\033[91m'
+    LIGHT_GREEN = '\033[92m'
+    LIGHT_YELLOW = '\033[93m'
+    LIGHT_BLUE = '\033[94m'
+    LIGHT_PURPLE = '\033[95m'
+    LIGHT_CYAN = '\033[96m'
+    DARK_BLACK = '\033[97m'
+    BG_LIGHT_BLACK = '\033[100m'
+    BG_LIGHT_RED = '\033[101m'
+    BG_LIGHT_GREEN = '\033[102m'
+    BG_LIGHT_YELLOW = '\033[103m'
+    BG_LIGHT_BLUE = '\033[104m'
+    BG_LIGHT_PURPLE = '\033[105m'
+    BG_LIGHT_CYAN = '\033[106m'
+    BG_DARK_BLACK = '\033[107m'
     END = '\033[0m'
 
 
@@ -221,8 +248,8 @@ def get_diff_output(value, format='{:>7}', prefix='', postfix=''):
            Color.END
 
 
-def a(value, trade_value):
+def get_level_output(value, trade_value):
     if is_digit(value):
-        return (Color.RED if (value - trade_value) < 0 else Color.GREEN) + str(value) + Color.END
+        return ((Color.RED if (value - trade_value) < 0 else Color.CYAN) if (value - trade_value) <= 0 else Color.GREEN) + str(value) + Color.END
     else:
         return Color.BLUE + str(value) + Color.END
