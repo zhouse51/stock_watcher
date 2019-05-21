@@ -1,3 +1,5 @@
+# crypto from https://github.com/mstrum/robinhood-python
+
 #Standard libraries
 import logging
 import warnings
@@ -725,3 +727,42 @@ class Robinhood:
         # Order type cannot be cancelled without a valid cancel link
         else:
             raise ValueError('Unable to cancel order ID: ' + order_id)
+
+    def get_crypto_quotes(self, currency_pair_ids=None, symbols=None):
+        """Fetch stock quote
+                    Args:
+                        stock (str): stock ticker, prompt if blank
+                    Returns:
+                        (:obj:`dict`): JSON contents from `quotes` endpoint
+                """
+
+        url = None
+        if currency_pair_ids:
+            ids = ','.join(currency_pair_ids)
+            url = str(endpoints.crypto_quote()) + "?ids=" + ids
+
+        if symbols:
+            symbols = ','.join(symbols)
+            url = str(endpoints.crypto_quote()) + "?symbols=" + symbols
+
+        # Check for validity of symbol
+        try:
+            req = self.session.get(url, timeout=15)
+            req.raise_for_status()
+            data = req.json()
+        except requests.exceptions.HTTPError:
+            raise RH_exception.InvalidTickerSymbol()
+
+        return data
+
+    def get_crypto_currency_pairs(self):
+        url = str(endpoints.get_crypto_currency_pairs())
+
+        try:
+            req = self.session.get(url, timeout=15)
+            req.raise_for_status()
+            data = req.json()
+        except requests.exceptions.HTTPError:
+            raise RH_exception.InvalidTickerSymbol()
+
+        return data['results']

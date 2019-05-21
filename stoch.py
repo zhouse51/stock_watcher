@@ -7,11 +7,11 @@ import calculator.Statistics as statistics
 # TODO load from data store
 stocks = {
     # 'NDAQ': None,
-    'ZM': {
-        'price': 85.08,
-        'type': 'buy',
-        'shares': 7
-    },
+    # 'ZM': {
+    #     'price': 85.08,
+    #     'type': 'buy',
+    #     'shares': 7
+    # },
     # 'PINS': {
     #     'price': 26.48,
     #     'type': 'buy',
@@ -31,11 +31,11 @@ def calculate_details(stock_quotes, fundamentals):
         bid_price = round(float(stock_quote.get('bid_price')), 3)
         bid_size = int(stock_quote.get('bid_size'))
         last_trade_price = round(float(stock_quote.get('last_trade_price')), 3)
-        # previous_close = round(float(stock_quote.get('previous_close')), 3)
-        today_open = round(float(fundamentals.get(symbol).get('open')), 3)
+        previous_close = round(float(stock_quote.get('previous_close')), 3)
+        # today_open = round(float(fundamentals.get(symbol).get('open')), 3)
 
         # calculated data
-        today_open_diff = round(((last_trade_price - today_open)/last_trade_price) * 100, 3)
+        today_open_diff = round(((last_trade_price - previous_close)/last_trade_price) * 100, 3)
         today_open_diff_output = util.get_diff_output(today_open_diff, format='{:>6}', postfix='%')
 
         period_samples.get(symbol).get('ask_price').push(ask_price)
@@ -99,8 +99,8 @@ def calculate_details(stock_quotes, fundamentals):
 def process_data():
     stock_quotes = rbh.quotes_data([symbol for symbol in stocks])
     fundamentals = {}
-    for symbol in stocks:
-        fundamentals[symbol] = rbh.get_fundamentals(symbol)
+    # for symbol in stocks:
+    #     fundamentals[symbol] = rbh.get_fundamentals(symbol)
 
     calculate_details(stock_quotes, fundamentals)
     # store_data(stock_quotes)

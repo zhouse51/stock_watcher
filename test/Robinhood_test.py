@@ -280,6 +280,17 @@ if not rb.login(username=config.get_config('robinhood.username'), password=confi
     print('Login failed.')
     exit()
 
+
+print("get_crypto_quotes")
+currency_pairs = rb.get_crypto_currency_pairs()
+currency_pair_by_id = {
+      currency_pair['id']: currency_pair for currency_pair in currency_pairs
+}
+
+data = rb.get_crypto_quotes(currency_pair_ids=list(currency_pair_by_id.keys()))
+data = rb.get_crypto_quotes(symbols=['BTCUSD'])
+print(data)
+
 print("quote_data")
 data = rb.quote_data('ZM')
 print(data)
