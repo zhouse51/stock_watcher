@@ -7,15 +7,16 @@ import calculator.Statistics as statistics
 stocks = {
     # 'NDAQ': None,
     'ZM': {
-        'price': 85.08,
+        'date': '2019-05-22',
+        'price': 84.88,
         'type': 'buy',
-        'shares': 7
+        'shares': 11
     },
-    'PINS': {
-        'price': 26.48,
-        'type': 'buy',
-        'shares': 15
-    },
+    # 'PINS': {
+    #     'price': 26.48,
+    #     'type': 'buy',
+    #     'shares': 15
+    # },
     # 'BYND': None,
     # 'LK': None
     }
@@ -28,7 +29,7 @@ def process_data():
     }
 
     statistics.details_output(stocks, stock_quotes, fundamentals, interval, checkpoint_rates, period_samples)
-    # store_data(stock_quotes)
+    # statistics.store_data(stock_quotes)
 
 
 config = Config(configure_file='../config.json')

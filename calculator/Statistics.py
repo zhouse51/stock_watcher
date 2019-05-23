@@ -1,6 +1,7 @@
-from utils.ml_tool import FifoQueue, Color
+from utils.ml_tool import FifoQueue
 from scipy.stats import linregress
 import utils.ml_tool as util
+import datetime
 
 
 def init_period_sample_sequence(stocks, interval=5, period=10):
@@ -15,12 +16,7 @@ def init_period_sample_sequence(stocks, interval=5, period=10):
     number_of_samples = (60 / interval) * period
     samples_queue = {}
     for stock in stocks:
-        samples_queue[stock] = {
-            'ask_price': FifoQueue(number_of_samples),
-            'bid_price': FifoQueue(number_of_samples),
-            'last_trade_price': FifoQueue(number_of_samples),
-        }
-    # period_samples.append(samples)
+        samples_queue[stock] = FifoQueue(number_of_samples)
 
     return samples_queue
 
@@ -42,33 +38,32 @@ def calculate_slop(stock_period_samples, interval=5, period=10):
     bid_price_slope = 0
     last_trade_price_slope = 0
 
-    x_value = list(range(0, len(stock_period_samples.get('ask_price').get_items()[-1 * number_of_samples:])))
+    x_value = list(range(0, len(stock_period_samples.get_items()[-1 * number_of_samples:])))
+
     if len(x_value) > 1:
-        ask_price_slope = (linregress(x_value, stock_period_samples.get('ask_price').get_items()[-number_of_samples:])).slope
-        bid_price_slope = (linregress(x_value, stock_period_samples.get('bid_price').get_items()[-number_of_samples:])).slope
-        last_trade_price_slope = (linregress(x_value, stock_period_samples.get('last_trade_price').get_items()[-number_of_samples:])).slope
+        ask_price_slope = (linregress(x_value, [float(q.get('ask_price')) for q in stock_period_samples.get_items()[-number_of_samples:]])).slope
+        bid_price_slope = (linregress(x_value, [float(q.get('bid_price')) for q in stock_period_samples.get_items()[-number_of_samples:]])).slope
+        last_trade_price_slope = (linregress(x_value, [float(q.get('last_trade_price')) for q in stock_period_samples.get_items()[-number_of_samples:]])).slope
     return ask_price_slope, bid_price_slope, last_trade_price_slope
 
 
 def details_output(stocks, stock_quotes, fundamentals, interval, checkpoint_rates, period_samples):
-    for stock_quote in stock_quotes:
-        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
-        symbol = stock_quote.get('symbol')
-        ask_price = round(float(stock_quote.get('ask_price')), 3)
-        ask_size = int(stock_quote.get('ask_size'))
-        bid_price = round(float(stock_quote.get('bid_price')), 3)
-        bid_size = int(stock_quote.get('bid_size'))
-        last_trade_price = round(float(stock_quote.get('last_trade_price')), 3)
-        base_line = round(float(stock_quote.get('previous_close')), 3)
+    for quote in stock_quotes:
+        updated_at = util.uct_to_ny_time(quote.get('updated_at'))
+        symbol = quote.get('symbol')
+        ask_price = round(float(quote.get('ask_price')), 3)
+        ask_size = int(quote.get('ask_size'))
+        bid_price = round(float(quote.get('bid_price')), 3)
+        bid_size = int(quote.get('bid_size'))
+        last_trade_price = round(float(quote.get('last_trade_price')), 3)
+        base_line = round(float(quote.get('previous_close')), 3)
         # base_line = round(float(fundamentals.get(symbol).get('open')), 3)
 
         # calculated data
         today_open_diff = round(((last_trade_price - base_line)/last_trade_price) * 100, 3)
         today_open_diff_output = util.get_diff_output(today_open_diff, format='{:>6}', postfix='%')
 
-        period_samples.get(symbol).get('ask_price').push(ask_price)
-        period_samples.get(symbol).get('bid_price').push(bid_price)
-        period_samples.get(symbol).get('last_trade_price').push(last_trade_price)
+        period_samples.get(symbol).push(quote)
 
         ask_price_slope_5min, bid_price_slope_5min, last_trade_price_slope_5min = calculate_slop(period_samples.get(symbol), interval=interval, period=5)
         ask_price_slope_10min, bid_price_slope_10min, last_trade_price_slope_10min = calculate_slop(period_samples.get(symbol), interval=interval, period=10)
@@ -114,11 +109,63 @@ def details_output(stocks, stock_quotes, fundamentals, interval, checkpoint_rate
                     display += f' {lower_bound:{3}} >[ {" > ".join([util.get_level_output(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
                     break
 
+        bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(quote, period_samples.get(symbol))
+
         print(f'{symbol:{5}} {updated_at:{8}} '
               f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) {ask_size:{4}} '
               f'{bid_price:{9}} ({bid_price_slope_output_5min:{1}}{bid_price_slope_output_10min:{1}}) {bid_size:{4}} '
               f'{last_trade_price:{9}} ({last_trade_price_slope_output_5min:{1}}{last_trade_price_slope_output_10min:{1}}) '
               + '[' + today_open_diff_output + '] '
               + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
-              f' --> {display if display else ""}'
+              f' --> {display if display else ""} '
+              f'{round(history_price_slope, 3)}, {round(trend_factor,2)}, {trend}'
               )
+
+
+def store_data(stock_quotes):
+    for stock_quote in stock_quotes:
+        # raw data
+        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
+        symbol = stock_quote.get('symbol')
+        ask_price = stock_quote.get('ask_price')
+        ask_size = stock_quote.get('ask_size')
+        bid_price = stock_quote.get('bid_price')
+        bid_size = stock_quote.get('bid_size')
+        last_trade_price = stock_quote.get('last_trade_price')
+
+        with open('../data_set/' + symbol + '_output_' + datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
+            line = str(updated_at) + ',' + str(ask_price) + ',' + str(ask_size) + ',' + str(bid_price) + ',' + str(bid_size) + ',' + str(last_trade_price)
+            the_file.write(line + '\n')
+            the_file.flush()
+            the_file.close()
+
+
+def get_trend(quote, history_quote_queue, interval=5, period=3):
+    number_of_samples = int((60 / interval) * period)
+
+    # bid_trade_diff_rate range -0.02 ~ +0.02 (-3% ~ +3%)
+    quote_bid_price = float(quote.get('bid_price'))
+    quote_last_trade_price = float(quote.get('last_trade_price'))
+    bid_trade_diff_rate = ((quote_last_trade_price - quote_bid_price) / quote_last_trade_price)
+
+    # slop range -0.004 ~ 0.004
+    x_value = list(range(0, len(history_quote_queue.get_items()[-1 * number_of_samples:])))
+    y_value = [float(history_quote.get('last_trade_price')) for history_quote in history_quote_queue.get_items()[-number_of_samples:]]
+    history_price_slope = None
+    if len(x_value) > 1:
+        history_price_slope = (linregress(x_value, y_value)).slope
+
+    # TODO factor need to be in params from config
+    trend_factor = (bid_trade_diff_rate * 50) * 0.4 + (history_price_slope * 71) * 0.6
+    # +: up, -: down
+    # range 0 ~ +/-1, can be over
+    # 0 ~ 0.2: flat
+    # 0.2 ~ 0.5: slow
+    # >= 0.5: fast
+    # TREND: -2, -1, 0, 1, 2
+    trend = 0 if abs(trend_factor) < 0.2 else (1 if abs(trend_factor) < 0.5 else 2)
+    trend = (-1 * trend) if trend_factor < 0 else trend
+
+    print('diff: ' + str(bid_trade_diff_rate) + ', slop: ' + str(history_price_slope) + ', factor: ' + str(trend_factor) + ', trend: ' + str(trend))
+
+    return bid_trade_diff_rate, history_price_slope, trend_factor, trend

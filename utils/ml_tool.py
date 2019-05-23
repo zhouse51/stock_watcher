@@ -189,7 +189,7 @@ class FifoQueue:
     def peek(self):
         return self.items[0]
 
-    def size(self):
+    def get_size(self):
         return len(self.items)
 
     def get_items(self):
