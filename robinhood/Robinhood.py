@@ -298,7 +298,8 @@ class Robinhood:
         historicals = endpoints.historicals() + "/?symbols=" + ','.join(stock).upper() + "&interval=" + interval + "&span=" + span + "&bounds=" + bounds.name.lower()
 
         res = self.session.get(historicals, timeout=15)
-        return res.json()['results'][0]
+
+        return res.json()['results'][0] if 'results' in res.json() else None
 
     def get_news(self, stock):
         """Fetch news endpoint

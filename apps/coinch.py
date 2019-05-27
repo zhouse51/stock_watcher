@@ -14,11 +14,15 @@ btc = {
     }
 }
 
+# need 2 min slop
+# slop on ask/bid price
+# buy on ask price
+# sell on bid price
 
 def process_data():
     btc_quote = rbh.get_crypto_quotes(symbols=['BTCUSD']).get('results')
     statistics.BTC_details_output(btc.get('BTCUSD'), btc_quote[0], interval, checkpoint_rates, period_samples)
-    # statistics.store_data(stock_quotes)
+    # statistics.store_btc_data(btc_quote[0])
 
 
 config = Config(configure_file='../config.json')

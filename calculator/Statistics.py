@@ -122,6 +122,24 @@ def stocks_details_output(stocks, stock_quotes, fundamentals, interval, checkpoi
               )
 
 
+def store_stock_data(stock_quotes):
+    for stock_quote in stock_quotes:
+        # raw data
+        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
+        symbol = stock_quote.get('symbol')
+        ask_price = stock_quote.get('ask_price')
+        ask_size = stock_quote.get('ask_size')
+        bid_price = stock_quote.get('bid_price')
+        bid_size = stock_quote.get('bid_size')
+        last_trade_price = stock_quote.get('last_trade_price')
+
+        with open('../data_set/' + symbol + '_output_' + datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
+            line = str(updated_at) + ',' + str(ask_price) + ',' + str(ask_size) + ',' + str(bid_price) + ',' + str(bid_size) + ',' + str(last_trade_price)
+            the_file.write(line + '\n')
+            the_file.flush()
+            the_file.close()
+
+
 def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, period_samples):
     updated_at = datetime.datetime.strftime(datetime.datetime.now(), '%H:%M:%S')
     ask_price = round(float(btc_quote.get('ask_price')), 3)
@@ -152,9 +170,14 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
     trans_unit_price = btc_transaction.get('unit_price')
     shares = btc_transaction.get('shares', 0)
 
-    total_value = mark_price * shares
-    trans_price_diff = round(total_value - trans_price, 2) if trans_type == 'buy' else 0
-    trans_price_diff_rate = round((trans_price_diff / trans_price) * 100, 2)
+    if btc_transaction.get('type') == 'buy':
+        total_value = bid_price * shares
+        trans_price_diff = round(total_value - trans_price, 2) if trans_type == 'buy' else 0
+        trans_price_diff_rate = round((trans_price_diff / trans_price) * 100, 2)
+    else:
+        total_value = ask_price * shares
+        trans_price_diff = round(total_value - trans_price, 2) if trans_type == 'buy' else 0
+        trans_price_diff_rate = round((trans_price_diff / trans_price) * 100, 2)
 
     total_value_output = util.get_diff_output(round(total_value, 2), format='{:>6}', postfix='$')
     total_price_diff_output = util.get_diff_output(trans_price_diff, format='{:>6}', postfix='$')
@@ -163,7 +186,7 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
     display = '[SELL] [' + trans_price_diff_rate_output + '] '
     display += '[' + total_price_diff_output + '] [' + total_value_output + ']' if trans_type == 'buy' else ''
 
-    bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(btc_quote, period_samples.get('BTCUSD'), market_price_key='mark_price')
+    bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(btc_quote, period_samples.get('BTCUSD'), multiplier=[50, 1], factor=[0.0, 1], market_price_key='mark_price')
 
     print(f'{updated_at:{5}} '
           f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) '
@@ -174,25 +197,26 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
           f'{round(history_price_slope, 3)}, {round(trend_factor, 2)}, {trend}'
           )
 
-def store_data(stock_quotes):
-    for stock_quote in stock_quotes:
-        # raw data
-        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
-        symbol = stock_quote.get('symbol')
-        ask_price = stock_quote.get('ask_price')
-        ask_size = stock_quote.get('ask_size')
-        bid_price = stock_quote.get('bid_price')
-        bid_size = stock_quote.get('bid_size')
-        last_trade_price = stock_quote.get('last_trade_price')
 
-        with open('../data_set/' + symbol + '_output_' + datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
-            line = str(updated_at) + ',' + str(ask_price) + ',' + str(ask_size) + ',' + str(bid_price) + ',' + str(bid_size) + ',' + str(last_trade_price)
-            the_file.write(line + '\n')
-            the_file.flush()
-            the_file.close()
+def store_btc_data(btc_quote):
+    # raw data
+    updated_at = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+    ask_price = btc_quote.get('ask_price')
+    bid_price = btc_quote.get('bid_price')
+    mark_price = btc_quote.get('mark_price')
+    high_price = btc_quote.get('high_price')
+    low_price = btc_quote.get('low_price')
+    open_price = btc_quote.get('open_price')
+    volume = btc_quote.get('volume')
+    row = [updated_at, ask_price, bid_price, mark_price, high_price, low_price, open_price, volume]
+
+    with open('/Users/james.zhou/Documents/raw_quotes/btc_output_' + datetime.datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
+        the_file.write(','.join(row) + '\n')
+        the_file.flush()
+        the_file.close()
 
 
-def get_trend(quote, history_quote_queue, interval=5, period=3, ask_price_key='ask_price', bid_price_key='bid_price', market_price_key='last_trade_price'):
+def get_trend(quote, history_quote_queue, interval=5, period=3, multiplier=[50, 71], factor=[0.4, 0.6], ask_price_key='ask_price', bid_price_key='bid_price', market_price_key='last_trade_price'):
     number_of_samples = int((60 / interval) * period)
 
     # bid_trade_diff_rate range -0.02 ~ +0.02 (-3% ~ +3%)
@@ -208,7 +232,7 @@ def get_trend(quote, history_quote_queue, interval=5, period=3, ask_price_key='a
         history_price_slope = (linregress(x_value, y_value)).slope
 
     # TODO factor need to be in params from config
-    trend_factor = (bid_trade_diff_rate * 50) * 0.4 + (history_price_slope * 71) * 0.6
+    trend_factor = (bid_trade_diff_rate * multiplier[0]) * factor[0] + (history_price_slope * multiplier[1]) * factor[1]
     # +: up, -: down
     # range 0 ~ +/-1, can be over
     # 0 ~ 0.2: slow: 1
