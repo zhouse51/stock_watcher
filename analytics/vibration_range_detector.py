@@ -25,7 +25,7 @@ def fetch_all_symbols():
         the_file.write('\n'.join(symbols))
 
 
-def fetch_historicals():
+def fetch_historicals(interval='day', span='year'):
     if not rbh.login(username=config.get_config('robinhood.username'),
                      password=config.get_config('robinhood.password')):
         print('Login failed.')
@@ -38,13 +38,13 @@ def fetch_historicals():
             c += 1
             print('Working on ', '[' + symbol + ']', c)
 
-            stock = rbh.get_historical_quotes(symbol, 'day', 'year')
+            stock = rbh.get_historical_quotes(symbol, interval, span)
             if not stock:
                 print('No data yet.')
                 continue
 
             historicals = stock.get('historicals')
-            with open('/Users/james.zhou/Documents/raw_quotes/historicals_' + symbol + '.csv', 'a') as the_file:
+            with open('/Users/james.zhou/Documents/raw_quotes/historicals_' + interval + '-' + span + '_' + symbol + '.csv', 'a') as the_file:
                 for historical in historicals:
                     row = [
                         symbol,
@@ -144,5 +144,6 @@ def analyze():
 
 # fetch_all_symbols()
 # fetch_historicals()
+fetch_historicals(interval='5minute', span='week')
 # build_analyze_data()
-analyze()
+# analyze()
