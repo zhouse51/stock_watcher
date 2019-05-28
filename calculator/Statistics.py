@@ -145,16 +145,22 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
     ask_price = round(float(btc_quote.get('ask_price')), 3)
     bid_price = round(float(btc_quote.get('bid_price')), 3)
     mark_price = round(float(btc_quote.get('mark_price')), 3)
+    volumn = btc_quote.get('volume')
+
+    previous_quote = period_samples.get('BTCUSD').peek_last()
+    previous_volumn = previous_quote.get('volume', 0) if previous_quote else 0
+
+    volumn = round(float(volumn) - float(previous_volumn), 2)
 
     # calculated data
     period_samples.get('BTCUSD').push(btc_quote)
 
-    ask_price_slope_5min, bid_price_slope_5min, mark_price_slope_5min = calculate_slop(period_samples.get('BTCUSD'), interval=interval, period=5, market_price_key='mark_price')
+    ask_price_slope_3min, bid_price_slope_3min, market_price_slope_3min = calculate_slop(period_samples.get('BTCUSD'), interval=interval, period=3, market_price_key='mark_price')
     ask_price_slope_10min, bid_price_slope_10min, mark_price_slope_10min = calculate_slop(period_samples.get('BTCUSD'), interval=interval, period=10, market_price_key='mark_price')
 
-    ask_price_slope_output_5min = util.get_slop_output(ask_price_slope_5min)
-    bid_price_slope_output_5min = util.get_slop_output(bid_price_slope_5min)
-    mark_price_slope_output_5min = util.get_slop_output(mark_price_slope_5min)
+    ask_price_slope_output_3min = util.get_slop_output(ask_price_slope_3min)
+    bid_price_slope_output_3min = util.get_slop_output(bid_price_slope_3min)
+    mark_price_slope_output_3min = util.get_slop_output(market_price_slope_3min)
 
     ask_price_slope_output_10min = util.get_slop_output(ask_price_slope_10min)
     bid_price_slope_output_10min = util.get_slop_output(bid_price_slope_10min)
@@ -183,15 +189,16 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
     total_price_diff_output = util.get_diff_output(trans_price_diff, format='{:>6}', postfix='$')
     trans_price_diff_rate_output = util.get_diff_output(trans_price_diff_rate, format='{:>5}', postfix='%')
 
-    display = '[SELL] [' + trans_price_diff_rate_output + '] '
+    display = '[' + trans_price_diff_rate_output + '] '
     display += '[' + total_price_diff_output + '] [' + total_value_output + ']' if trans_type == 'buy' else ''
 
     bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(btc_quote, period_samples.get('BTCUSD'), multiplier=[50, 1], factor=[0.0, 1], market_price_key='mark_price')
 
     print(f'{updated_at:{5}} '
-          f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) '
-          f'{bid_price:{9}} ({bid_price_slope_output_5min:{1}}{bid_price_slope_output_10min:{1}}) '
-          f'{mark_price:{9}} ({mark_price_slope_output_5min:{1}}{mark_price_slope_output_10min:{1}}) '
+          f'{volumn:{9}} '
+          f'{ask_price:{9}} ({ask_price_slope_output_3min:{1}}{ask_price_slope_output_10min:{1}}) '
+          f'{bid_price:{9}} ({bid_price_slope_output_3min:{1}}{bid_price_slope_output_10min:{1}}) '
+          f'{mark_price:{9}} ({mark_price_slope_output_3min:{1}}{mark_price_slope_output_10min:{1}}) '
           + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
           f' --> {display if display else ""} '
           f'{round(history_price_slope, 3)}, {round(trend_factor, 2)}, {trend}'
@@ -227,7 +234,7 @@ def get_trend(quote, history_quote_queue, interval=5, period=3, multiplier=[50, 
     # slop range -0.004 ~ 0.004
     x_value = list(range(0, len(history_quote_queue.get_items()[-1 * number_of_samples:])))
     y_value = [float(history_quote.get(market_price_key)) for history_quote in history_quote_queue.get_items()[-number_of_samples:]]
-    history_price_slope = None
+    history_price_slope = 0
     if len(x_value) > 1:
         history_price_slope = (linregress(x_value, y_value)).slope
 
@@ -243,6 +250,6 @@ def get_trend(quote, history_quote_queue, interval=5, period=3, multiplier=[50, 
     trend = 0 if abs(trend_factor) == 0 else (1 if abs(trend_factor) < 0.2 else (2 if abs(trend_factor) < 0.5 else (3 if abs(trend_factor) < 1 else 4)))
     trend = (-1 * trend) if trend_factor < 0 else trend
 
-    print('diff: ' + str(bid_trade_diff_rate) + ', slop: ' + str(history_price_slope) + ', factor: ' + str(trend_factor) + ', trend: ' + str(trend))
+    # print('diff: ' + str(bid_trade_diff_rate) + ', slop: ' + str(history_price_slope) + ', factor: ' + str(trend_factor) + ', trend: ' + str(trend))
 
     return bid_trade_diff_rate, history_price_slope, trend_factor, trend

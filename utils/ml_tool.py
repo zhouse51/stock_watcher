@@ -186,8 +186,11 @@ class FifoQueue:
         self.items = self.items[1:]
         return v
 
-    def peek(self):
-        return self.items[0]
+    def peek_first(self):
+        return self.items[0] if self.get_size() > 0 else None
+
+    def peek_last(self):
+        return self.items[-1] if self.get_size() > 0 else None
 
     def get_size(self):
         return len(self.items)
