@@ -1,81 +1,132 @@
 from datetime import datetime
 from utils.ml_tool import FifoQueue
+from calculator.Statistics import get_trend
+
 
 class SellStrategy(object):
     stop_loss_rate_adjusted = False
 
-    def __inif__(self, buy_transaction, refresh_rate=5, base_profitable_rate=0.04, stop_loss_rate=-0.03):
+    def __inif__(self, buy_transaction, refresh_rate=5, base_profitable_rate=0.04, stop_loss_rate=0.03):
         self.buy_transaction = buy_transaction
+        self.refresh_rate = refresh_rate
         self.today_date = datetime.strptime(datetime.now(), '%Y-%m-%d')
         self.quote_queue = FifoQueue()
+
         self.base_profitable_rate = base_profitable_rate
-        self.adjusted_profitable_rate = base_profitable_rate
+        self.base_profitable_price = base_profitable_rate * (1 + base_profitable_rate)
+        self.adjusted_profitable_rate = self.base_profitable_rate
+        self.adjusted_profitable_price = self.base_profitable_price
+        self.adjusted_down_profitable_rate = self.adjusted_profitable_rate * 0.99
+        self.adjusted_down_profitable_price = self.adjusted_profitable_price * 0.99
+
         self.stop_loss_rate = stop_loss_rate
+        self.stop_loss_price = self.buy_transaction.get('price') * (1 - stop_loss_rate)
 
         self.stop_loss_rate_adjusted = False
-        self.base_profitable_rate_reached = False
+        self.base_profitable_price_reached = False
         self.adjusted_profitable_rate_reached = False
 
+        self.trend_history = FifoQueue(3 * 60 / refresh_rate)
 
-    def suggest(self, quote):
+    def suggest(self, quote, history_quote_queue):
+        decision_trace = []
+
         decision = False
         # do not trade in the same day
         if self.buy_transaction.get('date') == self.today_date:
-            return False
+            decision_trace.append('0')
+            decision = False
+        else:
+            decision_trace.append('1')
 
-        quote_ask_price = float(quote.get('ask_price'))
-        quote_ask_size = int(quote.get('ask_size'))
-        quote_bid_price = float(quote.get('bid_price'))
-        quote_bid_size = int(quote.get('bid_size'))
-        quote_last_trade_price = float(quote.get('last_trade_price'))
-        bid_trade_diff_rate = ((quote_last_trade_price - quote_bid_price) / quote_last_trade_price)
+            trade_price = float(quote.get('last_trade_price'))
 
-        trans_buy_price = self.buy_transaction.get('price')
+            trend = get_trend(quote, history_quote_queue, interval=self.refresh_rate, period=5, multiplier=[50, 71], factor=[0.4, 0.6])
+            self.trend_history.push(trend)
 
-        # if reach base_profitable_rate
-        if (quote_last_trade_price - trans_buy_price) / trans_buy_price > self.base_profitable_rate:
-            self.base_profitable_rate_reached = True
+            if trade_price <= self.stop_loss_price:
+                decision_trace.append('2-1')
 
-        if (quote_last_trade_price - trans_buy_price)/trans_buy_price > self.adjusted_profitable_rate:
-            # if reach profitable_rate
-            self.adjusted_profitable_rate_reached = True
-            if bid_trade_diff_rate >= 0.004:
-                # sharp up, wait
-                self.adjusted_profitable_rate = self.adjusted_profitable_rate * 1.01
-                decision = False
+                if trend < -2:
+                    decision_trace.append('3-1')
+                    if self.stop_loss_rate_adjusted:
+                        decision_trace.append('4-1')
+                        decision = True
+                    else:
+                        decision_trace.append('4-2')
+                        self.stop_loss_rate = self.stop_loss_rate * 1.01
+                        self.stop_loss_price = self.buy_transaction.get('price') * (1 - self.stop_loss_rate)
+                        decision = False
+                else:
+                    decision_trace.append('3-2')
+                    decision = True
 
-
-        elif self.adjusted_profitable_rate_reached:
-            # if reached adjusted profitable_rate
-
-                # if sharp down: sell
-
-
-            decision = True
-
-        elif self.adjusted_profitable_rate_reached:
-            # if reached base profitable_rate
-
-            decision = True
-
-
-
-
-        elif (quote_last_trade_price - trans_buy_price)/trans_buy_price < self.stop_loss_rate:
-            # if reach stop_loss_rate
-
-            if bid_trade_diff_rate <= -0.004:
-                # sharp down
-                decision = True
-            elif self.stop_loss_rate_adjusted:
-                # already adjusted stop loss rate
-                decision = True
-            else:
-                # slow down, adjust the stop loss ratio, decrease 5% more on stop_loss_rate
                 self.stop_loss_rate_adjusted = True
-                self.stop_loss_rate = self.stop_loss_rate * 1.05
-                decision = False
+            else:
+                decision_trace.append('2-2')
+                if trade_price > self.base_profitable_price:
+                    decision_trace.append('3-4')
+                    if self.base_profitable_price_reached:
+                        decision_trace.append('4-6')
+                        if trade_price > self.adjusted_profitable_price:
+                            decision_trace.append('5-3')
+                            self.adjusted_down_profitable_rate = self.adjusted_profitable_rate * 0.99
+                            self.adjusted_down_profitable_price = self.adjusted_profitable_price * 0.99
+                            self.adjusted_profitable_rate = self.adjusted_profitable_rate * 1.01
+                            self.adjusted_profitable_price = self.adjusted_profitable_price * 1.01
 
+                            decision = False
+                        else:
+                            decision_trace.append('5-4')
+                            if trade_price < self.adjusted_down_profitable_price:
+                                decision_trace.append('6-3')
 
-        self.quote_queue.push(quote)
+                                if trend < -2:
+                                    decision_trace.append('7-2')
+                                    decision = True
+                                else:
+                                    decision_trace.append('7-1')
+                                    trend_avg = sum(self.trend_history.get_items()) / self.trend_history.get_size()
+                                    if trend_avg < -1:
+                                        decision_trace.append('8-2')
+                                        decision = True
+                                    else:
+                                        decision_trace.append('8-1')
+                                        decision = False
+
+                            else:
+                                decision_trace.append('6-4')
+                                decision = False
+                    else:
+                        decision_trace.append('4-5')
+                        self.base_profitable_price_reached = True
+                        self.adjusted_down_profitable_rate = self.adjusted_profitable_rate * 0.99
+                        self.adjusted_down_profitable_price = self.adjusted_profitable_price * 0.99
+                        self.adjusted_profitable_rate = self.adjusted_profitable_rate * 1.01
+                        self.adjusted_profitable_price = self.adjusted_profitable_price * 1.01
+
+                        decision = False
+
+                else:
+                    decision_trace.append('3-3')
+                    if self.base_profitable_price_reached:
+                        decision_trace.append('4-4')
+                        if trade_price > self.base_profitable_price * 0.99:
+                            decision_trace.append('5-1')
+
+                            if trend < -2:
+                                decision_trace.append('6-1')
+                                decision = True
+                            else:
+                                decision_trace.append('6-2')
+                                decision = False
+
+                        else:
+                            decision_trace.append('5-2')
+                            decision = True
+                    else:
+                        decision_trace.append('4-3')
+                        decision = False
+
+        print(decision_trace)
         return decision
