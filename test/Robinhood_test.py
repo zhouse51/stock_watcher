@@ -1,4 +1,4 @@
-from robinhood.Robinhood import Robinhood, Transaction
+from robinhood.Robinhood import Robinhood, Transaction, Intervals, Spans, Bounds
 import time
 import datetime
 from utils.Config import Config
@@ -289,7 +289,9 @@ currency_pair_by_id = {
 
 data = rb.get_crypto_quotes(currency_pair_ids=list(currency_pair_by_id.keys()))
 data = rb.get_crypto_quotes(symbols=['BTCUSD'])
-print(data)
+history = rb.get_crypto_historicals('BTCUSD', Intervals.FIVE_MINUTE, Spans.WEEK, Bounds.TWENTYFOUR_SEVEN)
+
+print(history)
 
 print("quote_data")
 data = rb.quote_data('ZM')

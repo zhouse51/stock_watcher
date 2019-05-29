@@ -123,5 +123,10 @@ def convert_token():
 def crypto_quote():
     return API_HOST + "/marketdata/forex/quotes/"
 
+
 def get_crypto_currency_pairs():
     return NUMMUS_HOST + "/currency_pairs/"
+
+
+def crypto_historicals():
+    return API_HOST + "/marketdata/forex/historicals/"
