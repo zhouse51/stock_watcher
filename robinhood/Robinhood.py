@@ -13,11 +13,31 @@ from . import exceptions as RH_exception
 from . import endpoints
 
 
+class Intervals(Enum):
+    FIFTEEN_SECOND = '15second'
+    FIVE_MINUTE = '5minute'
+    TEN_MINUTE = '10minute'
+    HOUR = 'hour'
+    DAY = 'day'
+    WEEK = 'week'
+
+
+class Spans(Enum):
+    DAY = 'day'
+    HOUR = 'hour'
+    WEEK = 'week'
+    YEAR = 'year'
+    FIVE_YEAR = '5year'
+    ALL = 'all'
+
+
 class Bounds(Enum):
     """Enum for bounds in `historicals` endpoint """
 
+    TWENTYFOUR_SEVEN = '24_7'
     REGULAR = 'regular'
     EXTENDED = 'extended'
+    TRADING = 'trading'
 
 
 class Transaction(Enum):
@@ -729,6 +749,10 @@ class Robinhood:
         else:
             raise ValueError('Unable to cancel order ID: ' + order_id)
 
+    ############################################################
+    #                          CRYPTO
+    ############################################################
+
     def get_crypto_quotes(self, currency_pair_ids=None, symbols=None):
         """Fetch stock quote
                     Args:
@@ -767,3 +791,57 @@ class Robinhood:
             raise RH_exception.InvalidTickerSymbol()
 
         return data['results']
+
+    def get_crypto_historicals(self, currency_pair_id, interval, span=None, bounds=None):
+        """
+        Example response:
+        {
+            "open_price": "6767.5400",
+            "span": "day",
+            "symbol": "BTCUSD",
+            "previous_close_price": "6767.5400",
+            "interval": "5minute",
+            "id": "3d961844-d360-45fc-989b-f6fca761d511",
+            "data_points": [
+                {
+                    "open_price": "6586.0400",
+                    "volume": "0.0000",
+                    "begins_at": "2018-04-06T13:30:00Z",
+                    "session": "reg",
+                    "low_price": "6572.7050",
+                    "interpolated": false,
+                    "close_price": "6590.4750",
+                    "high_price": "6596.7200"
+                },
+                {
+                    "open_price": "6586.0150",
+                    "volume": "0.0000",
+                    "begins_at": "2018-04-06T13:35:00Z",
+                    "session": "reg",
+                    "low_price": "6579.1450",
+                    "interpolated": false,
+                    "close_price": "6587.2850",
+                    "high_price": "6594.2450"
+                },
+                ...
+            ],
+            "bounds": "regular",
+            "open_time": "2018-04-06T13:30:00Z",
+            "previous_close_time": "2018-04-05T20:00:00Z"
+        }
+        """
+        # assert interval in Intervals
+        # params = {
+        #     'interval': interval,
+        # }
+        # if bounds:
+        #     assert bounds in Bounds
+        #     params['bounds'] = bounds
+        # if span:
+        #     assert span in Spans
+        #     params['span'] = span
+
+        historicals_url = endpoints.crypto_historicals() + currency_pair_id + "/?interval=" + interval.value.lower() + "&span=" + span.value.lower() + "&bounds=" + bounds.value.lower()
+        res = self.session.get(historicals_url, timeout=15)
+
+        return res.json()
