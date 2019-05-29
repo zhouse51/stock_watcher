@@ -6,14 +6,14 @@ from calculator.Statistics import get_trend
 class SellStrategy(object):
     stop_loss_rate_adjusted = False
 
-    def __inif__(self, buy_transaction, refresh_rate=5, base_profitable_rate=0.04, stop_loss_rate=0.03):
+    def __init__(self, buy_transaction, refresh_rate=5, base_profitable_rate=0.03, stop_loss_rate=0.03):
         self.buy_transaction = buy_transaction
         self.refresh_rate = refresh_rate
-        self.today_date = datetime.strptime(datetime.now(), '%Y-%m-%d')
+        self.today_date = datetime.strftime(datetime.now(), '%Y-%m-%d')
         self.quote_queue = FifoQueue()
 
-        self.base_profitable_rate = base_profitable_rate
-        self.base_profitable_price = base_profitable_rate * (1 + base_profitable_rate)
+        self.base_profitable_rate = 1 + base_profitable_rate
+        self.base_profitable_price = self.buy_transaction.get('price') * (1 + base_profitable_rate)
         self.adjusted_profitable_rate = self.base_profitable_rate
         self.adjusted_profitable_price = self.base_profitable_price
         self.adjusted_down_profitable_rate = self.adjusted_profitable_rate * 0.99
@@ -41,7 +41,7 @@ class SellStrategy(object):
 
             trade_price = float(quote.get('last_trade_price'))
 
-            trend = get_trend(quote, history_quote_queue, interval=self.refresh_rate, period=5, multiplier=[50, 71], factor=[0.4, 0.6])
+            bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(quote, history_quote_queue, interval=self.refresh_rate, period=5, multiplier=[50, 71], factor=[0.3, 0.7])
             self.trend_history.push(trend)
 
             if trade_price <= self.stop_loss_price:
@@ -128,5 +128,5 @@ class SellStrategy(object):
                         decision_trace.append('4-3')
                         decision = False
 
-        print(decision_trace)
-        return decision
+        # print(decision_trace, decision)
+        return ' > '.join(decision_trace), decision
