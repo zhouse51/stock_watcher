@@ -7,10 +7,10 @@ import calculator.Statistics as statistics
 btc = {
      'BTCUSD': {
         'date': '2019-05-22',
-        'price': 90.06,
-        'unit_price': 7827.67,
+        'price': 40,
+        'unit_price': 8651.33,
         'type': 'buy',
-        'shares': 0.01150479
+        'shares': 0.00462356
     }
 }
 

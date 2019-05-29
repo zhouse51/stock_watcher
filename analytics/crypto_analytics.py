@@ -22,8 +22,13 @@ for symbol in [currency_pair['symbol'].replace('-', '') for currency_pair in cur
 
     for data_point in data_points:
         if data_point.get('begins_at') not in data_set:
-            data_set[data_point['begins_at']] = []
+            data_set[data_point['begins_at']] = {}
 
-        data_set[data_point['begins_at']].append({'symbol': symbol, 'price': data_point.get('close_price')})
+        data_set[data_point['begins_at']][symbol] = data_point.get('close_price')
 
-print(data_set)
+for data in data_set:
+    prices = [data]
+    for symbol in [currency_pair['symbol'].replace('-', '') for currency_pair in currency_pairs]:
+        prices.append(data_set.get(data).get(symbol, ''))
+
+    print(','.join(prices))

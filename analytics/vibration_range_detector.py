@@ -144,6 +144,6 @@ def analyze():
 
 # fetch_all_symbols()
 # fetch_historicals()
-fetch_historicals(interval='5minute', span='week')
+# fetch_historicals(interval='5minute', span='week')
 # build_analyze_data()
-# analyze()
+analyze()
