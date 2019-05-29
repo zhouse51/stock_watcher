@@ -47,23 +47,23 @@ def calculate_slop(stock_period_samples, interval=5, period=10, ask_price_key='a
     return ask_price_slope, bid_price_slope, last_trade_price_slope
 
 
-def stocks_details_output(stocks, stock_quotes, fundamentals, interval, checkpoint_rates, period_samples):
-    for quote in stock_quotes:
-        updated_at = util.uct_to_ny_time(quote.get('updated_at'))
-        symbol = quote.get('symbol')
-        ask_price = round(float(quote.get('ask_price')), 3)
-        ask_size = int(quote.get('ask_size'))
-        bid_price = round(float(quote.get('bid_price')), 3)
-        bid_size = int(quote.get('bid_size'))
-        last_trade_price = round(float(quote.get('last_trade_price')), 3)
-        base_line = round(float(quote.get('previous_close')), 3)
+def stocks_details_output(transaction, stock_quote, fundamentals, interval, checkpoint_rates, period_samples, strategy):
+
+        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
+        symbol = stock_quote.get('symbol')
+        ask_price = round(float(stock_quote.get('ask_price')), 3)
+        ask_size = int(stock_quote.get('ask_size'))
+        bid_price = round(float(stock_quote.get('bid_price')), 3)
+        bid_size = int(stock_quote.get('bid_size'))
+        last_trade_price = round(float(stock_quote.get('last_trade_price')), 3)
+        base_line = round(float(stock_quote.get('previous_close')), 3)
         # base_line = round(float(fundamentals.get(symbol).get('open')), 3)
 
         # calculated data
         today_open_diff = round(((last_trade_price - base_line)/last_trade_price) * 100, 3)
         today_open_diff_output = util.get_diff_output(today_open_diff, format='{:>6}', postfix='%')
 
-        period_samples.get(symbol).push(quote)
+        period_samples.get(symbol).push(stock_quote)
 
         ask_price_slope_5min, bid_price_slope_5min, last_trade_price_slope_5min = calculate_slop(period_samples.get(symbol), interval=interval, period=5)
         ask_price_slope_10min, bid_price_slope_10min, last_trade_price_slope_10min = calculate_slop(period_samples.get(symbol), interval=interval, period=10)
@@ -81,7 +81,6 @@ def stocks_details_output(stocks, stock_quotes, fundamentals, interval, checkpoi
         bid_trade_diff_output = util.get_diff_output(bid_trade_diff)
         bid_trade_diff_rate_output = util.get_diff_output(bid_trade_diff_rate, format='{:>5}', postfix='%')
 
-        transaction = stocks.get(symbol, None)
         display = None
         if transaction:
             trans_price = transaction.get('price')
@@ -109,7 +108,10 @@ def stocks_details_output(stocks, stock_quotes, fundamentals, interval, checkpoi
                     display += f' {lower_bound:{3}} >[ {" > ".join([util.get_level_output(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
                     break
 
-        bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(quote, period_samples.get(symbol))
+        # bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(stock_quote, period_samples.get(symbol), factor=[0.3, 0.7])
+
+            decision_trace, decision = strategy.suggest(stock_quote, period_samples.get(symbol))
+            display += ('[' + decision_trace + '] ' + str(decision))
 
         print(f'{symbol:{5}} {updated_at:{8}} '
               f'{ask_price:{9}} ({ask_price_slope_output_5min:{1}}{ask_price_slope_output_10min:{1}}) {ask_size:{4}} '
@@ -118,26 +120,26 @@ def stocks_details_output(stocks, stock_quotes, fundamentals, interval, checkpoi
               + '[' + today_open_diff_output + '] '
               + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
               f' --> {display if display else ""} '
-              f'{round(history_price_slope, 3)}, {round(trend_factor,2)}, {trend}'
+              # f'{round(history_price_slope, 3)}, {round(trend_factor,2)}, {trend} '
+
               )
 
 
-def store_stock_data(stock_quotes):
-    for stock_quote in stock_quotes:
-        # raw data
-        updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
-        symbol = stock_quote.get('symbol')
-        ask_price = stock_quote.get('ask_price')
-        ask_size = stock_quote.get('ask_size')
-        bid_price = stock_quote.get('bid_price')
-        bid_size = stock_quote.get('bid_size')
-        last_trade_price = stock_quote.get('last_trade_price')
+def store_stock_data(stock_quote):
+    # raw data
+    updated_at = util.uct_to_ny_time(stock_quote.get('updated_at'))
+    symbol = stock_quote.get('symbol')
+    ask_price = stock_quote.get('ask_price')
+    ask_size = stock_quote.get('ask_size')
+    bid_price = stock_quote.get('bid_price')
+    bid_size = stock_quote.get('bid_size')
+    last_trade_price = stock_quote.get('last_trade_price')
 
-        with open('../data_set/' + symbol + '_output_' + datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
-            line = str(updated_at) + ',' + str(ask_price) + ',' + str(ask_size) + ',' + str(bid_price) + ',' + str(bid_size) + ',' + str(last_trade_price)
-            the_file.write(line + '\n')
-            the_file.flush()
-            the_file.close()
+    with open('../data_set/' + symbol + '_output_' + datetime.today().strftime("%Y-%m-%d") + '.csv', 'a') as the_file:
+        line = str(updated_at) + ',' + str(ask_price) + ',' + str(ask_size) + ',' + str(bid_price) + ',' + str(bid_size) + ',' + str(last_trade_price)
+        the_file.write(line + '\n')
+        the_file.flush()
+        the_file.close()
 
 
 def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, period_samples):
@@ -193,6 +195,7 @@ def BTC_details_output(btc_transaction, btc_quote, interval, checkpoint_rates, p
     display += '[' + total_price_diff_output + '] [' + total_value_output + ']' if trans_type == 'buy' else ''
 
     bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(btc_quote, period_samples.get('BTCUSD'), multiplier=[50, 1], factor=[0.0, 1], market_price_key='mark_price')
+
 
     print(f'{updated_at:{5}} '
           f'{volumn:{9}} '
