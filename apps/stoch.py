@@ -7,12 +7,12 @@ from strategy.sell_strategy import SellStrategy
 # TODO load from data store
 stocks = {
     # 'NDAQ': None,
-    # 'ZM': {
-    #     'date': '2019-05-22',
-    #     'price': 84.88,
-    #     'type': 'buy',
-    #     'shares': 11
-    # },
+    'ZM': {
+        'date': '2019-05-22',
+        'price': 84.88,
+        'type': 'buy',
+        'shares': 5
+    },
     # 'F': {
     #     'date': '2019-05-28',
     #     'price': 9.67,
@@ -24,10 +24,21 @@ stocks = {
     #     'type': 'buy',
     #     'shares': 15
     # },
-    # 'BYND': None,
-    # 'LK': None,
+    # 'BYND': {
+    #         'date': '2019-05-30',
+    #         'price': 99.1,
+    #         'type': 'buy',
+    #         'shares': 4,
+    #     },
+    # 'LK': {
+    #     'date': '2019-05-30',
+    #     'price': 17.82,
+    #     'type': 'buy',
+    #     'shares': 2,
+    # },
     # 'PAYS': None,
-    'SE': None,
+    # 'SE': None,
+    # 'GSX': None
     }
 
 
