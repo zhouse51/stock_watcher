@@ -105,7 +105,7 @@ def stocks_details_output(transaction, stock_quote, fundamentals, interval, chec
 
                     lower_bound = util.get_diff_output(i - 22, format='{:>2}', postfix='%')
                     higher_bound = util.get_diff_output(i - 19, format='{:2}', postfix='%')
-                    display += f' {lower_bound:{3}} >[ {" > ".join([util.get_level_output(p, trans_price) for p in position])} ]> {higher_bound:{3}}'
+                    display += f' {lower_bound:{3}} >[{( chr(9658) ).join([util.get_level_output(p, trans_price) for p in position])}]> {higher_bound:{3}} '
                     break
 
         # bid_trade_diff_rate, history_price_slope, trend_factor, trend = get_trend(stock_quote, period_samples.get(symbol), factor=[0.3, 0.7])
@@ -119,7 +119,7 @@ def stocks_details_output(transaction, stock_quote, fundamentals, interval, chec
               f'{last_trade_price:{9}} ({last_trade_price_slope_output_5min:{1}}{last_trade_price_slope_output_10min:{1}}) '
               + '[' + today_open_diff_output + '] '
               + bid_trade_diff_output + ' [' + bid_trade_diff_rate_output + '] ' +
-              f' --> {display if display else ""} '
+              f' {chr(9679):{1}} {display if display else ""} '
               # f'{round(history_price_slope, 3)}, {round(trend_factor,2)}, {trend} '
 
               )
