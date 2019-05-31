@@ -79,6 +79,10 @@ def historicals():
     return API_HOST + "/quotes/historicals/"
 
 
+def rating():
+    return API_HOST + "/midlands/ratings/"
+
+
 def document_requests():
     return API_HOST + "/upload/document_requests/"
 

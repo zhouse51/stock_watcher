@@ -341,6 +341,10 @@ print("get_fundamentals")
 data = rb.get_fundamentals('ZM')
 print(data)
 
+print("get_rating")
+data = rb.get_rating('ZM')
+print(data)
+
 print("portfolios")
 data = rb.portfolios()
 print(data)

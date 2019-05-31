@@ -321,6 +321,11 @@ class Robinhood:
 
         return res.json()['results'][0] if 'results' in res.json() else None
 
+    def get_rating(self, stock):
+        url = endpoints.rating() + stock + '/'
+        response = self.session.get(url, timeout=15)
+        return response.json()
+
     def get_news(self, stock):
         """Fetch news endpoint
             Args:
