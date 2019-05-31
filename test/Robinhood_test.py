@@ -273,6 +273,11 @@ def place_stop_limit_sell_order(rb,
 for i in range(1, 151):
     print('\033[' + str(i) + 'm' + str(i) + ': ABCDEFG' + '\033[0m')
 
+symbs = [u'\u2550', u'\u2551', u'\u2552', u'\u2553', u'\u2554', u'\u2569', u'\u2566', u'\u2560', u'\u2550', u'\u256c']
+
+for i in range(0000, 65536):
+    print(i, chr(i))
+
 config = Config(configure_file='../config.json')
 
 rb = Robinhood()

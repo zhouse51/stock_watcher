@@ -835,16 +835,6 @@ class Robinhood:
             "previous_close_time": "2018-04-05T20:00:00Z"
         }
         """
-        # assert interval in Intervals
-        # params = {
-        #     'interval': interval,
-        # }
-        # if bounds:
-        #     assert bounds in Bounds
-        #     params['bounds'] = bounds
-        # if span:
-        #     assert span in Spans
-        #     params['span'] = span
 
         historicals_url = endpoints.crypto_historicals() + currency_pair_id + "/?interval=" + interval.value.lower() + "&span=" + span.value.lower() + "&bounds=" + bounds.value.lower()
         res = self.session.get(historicals_url, timeout=15)
