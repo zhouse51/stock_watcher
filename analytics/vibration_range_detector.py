@@ -130,6 +130,33 @@ def build_analyze_data():
                 the_file.flush()
 
 
+def fetch_ratings():
+    if not rbh.login(username=config.get_config('robinhood.username'),
+                     password=config.get_config('robinhood.password')):
+        print('Login failed.')
+        exit()
+
+    data = rbh.instruments('')
+    id_symbols = {
+        instrument.get('id'): instrument.get('symbol') for instrument in data.get('results')
+    }
+
+    while data.get('next'):
+        data = rbh.get_url(data.get('next'))
+        id_symbols_new = {
+            instrument.get('id'): instrument.get('symbol') for instrument in data.get('results')
+        }
+        id_symbols.update(id_symbols_new)
+        print("get next page of list ", len(id_symbols))
+
+    for id in id_symbols:
+        rating = rbh.get_rating(id)
+        if 'summary' in rating and rating['summary']:
+            print(id_symbols[id], rating['summary']['num_buy_ratings'], rating['summary']['num_hold_ratings'], rating['summary']['num_sell_ratings'])
+
+    print('finished')
+
+
 def analyze():
     df = pd.read_csv('/Users/james.zhou/Documents/raw_quotes/statistic.csv')
     df.columns = ['symbol', 'mean', 'median', 'max_positive', 'max_negative', 'week_diff', 'week_diff_rate', 'month_diff', 'month_diff_rate', 'total_diff', 'total_diff_rate', 'latest_close']
@@ -146,4 +173,5 @@ def analyze():
 # fetch_historicals()
 # fetch_historicals(interval='5minute', span='week')
 # build_analyze_data()
-analyze()
+fetch_ratings()
+# analyze()
